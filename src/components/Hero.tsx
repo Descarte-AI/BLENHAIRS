@@ -6,11 +6,17 @@ const Hero = () => {
   const navigate = useNavigate();
 
   const handleShopNow = () => {
-    navigate('/collection/afro-kinky-bulk');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setTimeout(() => {
+      navigate('/collection/afro-kinky-bulk');
+    }, 100);
   };
 
   const handleCategoryClick = (categoryId: string) => {
-    navigate('/collection/afro-kinky-bulk');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setTimeout(() => {
+      navigate('/collection/afro-kinky-bulk');
+    }, 100);
   };
 
 const categories = [

@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import Header from './components/Header';
 import Hero from './components/Hero';
 import AfroKinkyCollection from './components/AfroKinkyCollection';
@@ -8,6 +9,17 @@ import AboutUs from './components/AboutUs';
 import CartPage from './components/CartPage';
 import Footer from './components/Footer';
 import { CartProvider } from './context/CartContext';
+
+// Component to handle scroll to top on route change
+const ScrollToTop = () => {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
+  return null;
+};
 
 const HomePage = () => (
   <>
@@ -21,6 +33,7 @@ function App() {
   return (
     <CartProvider>
       <Router>
+        <ScrollToTop />
         <div className="min-h-screen bg-white">
           <Header />
           <Routes>

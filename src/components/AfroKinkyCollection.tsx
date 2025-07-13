@@ -44,7 +44,12 @@ const AfroKinkyCollection = () => {
   });
 
   const handleProductClick = (productId: string) => {
-    navigate(`/product/${productId}`);
+    // Scroll to top before navigation
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Small delay to ensure smooth scroll completes before navigation
+    setTimeout(() => {
+      navigate(`/product/${productId}`);
+    }, 100);
   };
 
   const colorSections = [

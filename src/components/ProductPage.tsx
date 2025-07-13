@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Star, ShoppingBag, Heart, Share2, Truck, Shield, RotateCcw, CreditCard, Plus, Minus, Check, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useCart } from '../context/CartContext';
@@ -14,6 +14,18 @@ const ProductPage = () => {
   const [quantity, setQuantity] = useState(1);
   const [showPayment, setShowPayment] = useState(false);
   const [activeTab, setActiveTab] = useState('description');
+
+  // Scroll to top when component mounts or product ID changes
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [id]);
+
+  // Reset states when product changes
+  useEffect(() => {
+    setSelectedImage(0);
+    setQuantity(1);
+    setActiveTab('description');
+  }, [id]);
 
   const product = getProductById(id || '');
 
@@ -85,14 +97,25 @@ const ProductPage = () => {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center space-x-2 text-sm">
               <button 
-                onClick={() => navigate('/collection/afro-kinky-bulk')}
+                onClick={() => {
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                  setTimeout(() => navigate('/collection/afro-kinky-bulk'), 100);
+                }}
                 className="text-gray-600 hover:text-gray-900 flex items-center space-x-1 font-medium transition-colors"
               >
                 <ArrowLeft size={16} />
                 <span>Back to Collection</span>
               </button>
               <span className="text-gray-400">/</span>
-              <span className="text-gray-600">Afro Kinky Bulk</span>
+              <button 
+                onClick={() => {
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                  setTimeout(() => navigate('/collection/afro-kinky-bulk'), 100);
+                }}
+                className="text-gray-600 hover:text-gray-900 font-medium transition-colors"
+              >
+                Afro Kinky Bulk
+              </button>
               <span className="text-gray-400">/</span>
               <span className="text-gray-900 font-semibold truncate">{product.color} {product.length}</span>
             </div>
@@ -298,9 +321,22 @@ const ProductPage = () => {
 
               {/* Action Buttons */}
               <div className="space-y-4">
+                <div className="bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-xl p-4 mb-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                      <span className="font-bold text-green-800">In Stock & Ready to Ship</span>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-gray-600">Estimated Delivery</p>
+                      <p className="font-bold text-gray-900">3-5 Business Days</p>
+                    </div>
+                  </div>
+                </div>
+                
                 <button
                   onClick={handleAddToCart}
-                  className="w-full bg-gray-200 text-gray-900 py-4 rounded-xl font-bold text-lg hover:bg-gray-300 transition-colors flex items-center justify-center space-x-2"
+                  className="w-full bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 text-gray-900 py-4 rounded-xl font-bold text-lg transition-all duration-300 flex items-center justify-center space-x-2 border-2 border-gray-300 hover:border-gray-400 transform hover:scale-[1.02]"
                 >
                   <ShoppingBag size={20} />
                   <span>Add to Cart - ${(product.price * quantity).toFixed(2)}</span>
@@ -308,17 +344,25 @@ const ProductPage = () => {
                 
                 <button
                   onClick={handleBuyNow}
-                  className="w-full bg-gray-900 text-white py-4 rounded-xl font-bold text-lg hover:bg-gray-800 transition-colors flex items-center justify-center space-x-2"
+                  className="w-full bg-gradient-to-r from-gray-900 to-gray-800 hover:from-gray-800 hover:to-gray-700 text-white py-4 rounded-xl font-bold text-lg transition-all duration-300 flex items-center justify-center space-x-2 shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
                 >
                   <CreditCard size={20} />
                   <span>Buy Now</span>
                 </button>
               </div>
 
-              {/* Stock Status */}
-              <div className="flex items-center justify-center space-x-2 text-green-600 bg-green-50 py-3 rounded-xl">
-                <Check size={20} />
-                <span className="font-semibold">In Stock - Ready to Ship</span>
+              {/* Trust Badges */}
+              <div className="grid grid-cols-2 gap-4 mt-6">
+                <div className="bg-white border border-gray-200 rounded-xl p-4 text-center hover:shadow-md transition-shadow">
+                  <Shield className="text-blue-600 mx-auto mb-2" size={24} />
+                  <p className="font-bold text-gray-900 text-sm">30-Day</p>
+                  <p className="text-gray-600 text-xs">Money Back</p>
+                </div>
+                <div className="bg-white border border-gray-200 rounded-xl p-4 text-center hover:shadow-md transition-shadow">
+                  <Truck className="text-green-600 mx-auto mb-2" size={24} />
+                  <p className="font-bold text-gray-900 text-sm">Free</p>
+                  <p className="text-gray-600 text-xs">Shipping</p>
+                </div>
               </div>
             </div>
           </div>
@@ -414,6 +458,24 @@ const ProductPage = () => {
                   <div className="bg-gray-50 rounded-2xl p-8">
                     <h3 className="text-2xl font-bold text-gray-900 mb-6">Easy Installation Guide</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      <div className="md:col-span-2 mb-8">
+                        <div className="bg-gradient-to-r from-gray-900 to-gray-700 rounded-2xl p-8 text-white text-center">
+                          <h4 className="text-2xl font-bold mb-4">Professional Installation Video</h4>
+                          <p className="text-gray-200 mb-6">Watch our step-by-step guide for perfect results</p>
+                          <div className="relative bg-black rounded-xl overflow-hidden shadow-2xl max-w-2xl mx-auto">
+                            <div className="aspect-video">
+                              <iframe
+                                src="https://www.youtube.com/embed/dQw4w9WgXcQ?controls=1&modestbranding=1&rel=0"
+                                title="How to Install Afro Kinky Bulk Hair - Professional Guide"
+                                className="w-full h-full"
+                                frameBorder="0"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowFullScreen
+                              ></iframe>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                       {[
                         {
                           step: 1,
@@ -571,7 +633,10 @@ const ProductPage = () => {
                         src={similarProduct.image}
                         alt={similarProduct.name}
                         className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-500 cursor-pointer"
-                        onClick={() => navigate(`/product/${similarProduct.id}`)}
+                        onClick={() => {
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                          setTimeout(() => navigate(`/product/${similarProduct.id}`), 100);
+                        }}
                       />
                       
                       {similarProduct.popular && (
@@ -601,7 +666,10 @@ const ProductPage = () => {
                       
                       <h3 
                         className="font-semibold text-gray-900 mb-2 cursor-pointer hover:text-gray-700 transition-colors line-clamp-2"
-                        onClick={() => navigate(`/product/${similarProduct.id}`)}
+                        onClick={() => {
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                          setTimeout(() => navigate(`/product/${similarProduct.id}`), 100);
+                        }}
                       >
                         {similarProduct.name}
                       </h3>
@@ -627,7 +695,10 @@ const ProductPage = () => {
                       </div>
 
                       <button
-                        onClick={() => navigate(`/product/${similarProduct.id}`)}
+                        onClick={() => {
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                          setTimeout(() => navigate(`/product/${similarProduct.id}`), 100);
+                        }}
                         className="w-full bg-gray-900 text-white py-2.5 rounded-lg font-medium hover:bg-gray-800 transition-colors"
                       >
                         View Product
