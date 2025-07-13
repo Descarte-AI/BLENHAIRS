@@ -9,6 +9,10 @@ const Hero = () => {
     navigate('/collection/afro-kinky-bulk');
   };
 
+  const handleCategoryClick = (categoryId: string) => {
+    navigate('/collection/afro-kinky-bulk');
+  };
+
 const categories = [
   {
     id: 'hair-extensions',
