@@ -508,6 +508,29 @@ export const getProductById = (id: string) => {
   return allProducts.find(product => product.id === id);
 };
 
+// Get product by color and length combination
+export const getProductByColorAndLength = (color: string, length: string) => {
+  const allProducts = getAllProducts();
+  return allProducts.find(product => 
+    product.color.toLowerCase().replace(' ', '-') === color.toLowerCase().replace(' ', '-') && 
+    product.length === length
+  );
+};
+
+// Get all available colors
+export const getAvailableColors = () => {
+  return [
+    { key: 'natural-black', name: 'Natural Black', colorCode: '#1B1B1B' },
+    { key: 'dark-brown', name: 'Dark Brown', colorCode: '#3C2415' },
+    { key: 'medium-brown', name: 'Medium Brown', colorCode: '#8B4513' }
+  ];
+};
+
+// Get all available lengths
+export const getAvailableLengths = () => {
+  return ['14"', '16"', '18"', '20"', '22"', '24"'];
+};
+
 // Get products by color
 export const getProductsByColor = (color: string) => {
   const colorKey = color.toLowerCase().replace(' ', '-');
