@@ -53,35 +53,15 @@ const ProductPage = () => {
 
   const similarProducts = getSimilarProducts(product.id, 4);
 
-  // Calculate price based on selected packs
-  const getPackPrice = () => {
-    if (!product.packOptions) {
-      return product.price * selectedPacks;
-    }
-    const packOption = product.packOptions.find(option => option.packs === selectedPacks);
-    return packOption ? packOption.price : product.price * selectedPacks;
-  };
-
-  const getPackDiscount = () => {
-    if (!product.packOptions) return 0;
-    const packOption = product.packOptions.find(option => option.packs === selectedPacks);
-    return packOption ? packOption.discount : 0;
-  };
-
-  const currentPrice = getPackPrice();
-  const originalPackPrice = product.price * selectedPacks;
-  const packDiscount = getPackDiscount();
-
   const handleAddToCart = () => {
     addToCart({
       id: product.id,
       name: product.name,
-      price: currentPrice,
+      price: product.price,
       image: product.image,
-      shade: availableColors.find(c => c.key === selectedColor)?.name || product.color,
-      length: selectedLength,
-      quantity: quantity,
-      packs: selectedPacks
+      shade: product.color,
+      length: product.length,
+      quantity: quantity
     });
     
     const successDiv = document.createElement('div');
@@ -90,7 +70,7 @@ const ProductPage = () => {
       <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
         <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
       </svg>
-      <span>Added ${selectedPacks} pack(s) to cart!</span>
+      <span>Added to cart!</span>
     `;
     document.body.appendChild(successDiv);
     setTimeout(() => successDiv.remove(), 3000);
@@ -739,11 +719,12 @@ const ProductPage = () => {
         items={[{
           id: product.id,
           name: product.name,
-          price: product.price,
+          price: currentPrice,
           image: product.image,
-          shade: product.color,
-          length: product.length,
-          quantity: quantity
+          shade: availableColors.find(c => c.key === selectedColor)?.name || product.color,
+          length: selectedLength,
+          quantity: quantity,
+          packs: selectedPacks
         }]}
       />
     </>
