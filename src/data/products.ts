@@ -531,6 +531,29 @@ export const getAvailableLengths = () => {
   return ['14"', '16"', '18"', '20"', '22"', '24"'];
 };
 
+// Get price for specific length (base prices)
+export const getPriceForLength = (length: string): number => {
+  const basePrices: { [key: string]: number } = {
+    '14"': 45,
+    '16"': 50,
+    '18"': 55,
+    '20"': 60,
+    '22"': 65,
+    '24"': 70
+  };
+  return basePrices[length] || 55;
+};
+
+// Get color multiplier for pricing
+export const getColorMultiplier = (color: string): number => {
+  const multipliers: { [key: string]: number } = {
+    'natural-black': 1.0,
+    'dark-brown': 1.1,
+    'medium-brown': 1.15
+  };
+  return multipliers[color] || 1.0;
+};
+
 // Get products by color
 export const getProductsByColor = (color: string) => {
   const colorKey = color.toLowerCase().replace(' ', '-');

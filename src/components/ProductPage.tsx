@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Star, ShoppingCart, Heart, Share2, ChevronLeft, ChevronRight, Plus, Minus, Check, Truck, RotateCcw, Shield } from 'lucide-react';
 import { useCart } from '../context/CartContext';
-import { getAllProducts } from '../data/products';
+import { getAllProducts, getPriceForLength, getColorMultiplier } from '../data/products';
 import PaymentModal from './PaymentModal';
 
 const ProductPage: React.FC = () => {
@@ -17,6 +17,14 @@ const ProductPage: React.FC = () => {
   const [selectedColor, setSelectedColor] = useState('');
   const [selectedLength, setSelectedLength] = useState('');
   const [selectedPacks, setSelectedPacks] = useState(1);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [reviewForm, setReviewForm] = useState({
+    name: '',
+    email: '',
+    rating: 5,
+    title: '',
+    review: ''
+  });
 
   // Find the product by ID
   const product = getAllProducts().find(p => p.id === id);
@@ -86,7 +94,11 @@ const ProductPage: React.FC = () => {
   const calculatePrice = () => {
     if (!currentProduct) return { basePrice: 0, totalPrice: 0, savings: 0, pricePerPack: 0 };
     
-    const basePrice = currentProduct.price;
+    // Calculate price based on length and color
+    const lengthPrice = getPriceForLength(selectedLength);
+    const colorMultiplier = getColorMultiplier(selectedColor);
+    const basePrice = Math.round(lengthPrice * colorMultiplier);
+    
     const packOption = packOptions.find(p => p.count === selectedPacks) || packOptions[0];
     const totalBeforeDiscount = basePrice * selectedPacks * quantity;
     const totalDiscount = packOption.discount * quantity;
@@ -177,6 +189,77 @@ const ProductPage: React.FC = () => {
     { id: 'care', label: 'Care Instructions' },
     { id: 'reviews', label: 'Reviews' }
   ];
+
+  // Installation steps with photos
+  const installationSteps = [
+    {
+      step: 1,
+      title: "Prepare Your Natural Hair",
+      description: "Wash and condition your hair thoroughly. Detangle completely and let it dry. This creates the perfect foundation for installation.",
+      image: "/IMG-20250629-WA0168.jpg",
+      tips: ["Use sulfate-free shampoo", "Deep condition for moisture", "Detangle gently when damp"]
+    },
+    {
+      step: 2,
+      title: "Section Your Hair",
+      description: "Create clean, even parts using a rat-tail comb. Section your hair into manageable portions for braiding or twisting.",
+      image: "/IMG-20250629-WA0180.jpg",
+      tips: ["Use clips to hold sections", "Make parts straight and even", "Start from the nape upward"]
+    },
+    {
+      step: 3,
+      title: "Prepare the Bulk Hair",
+      description: "Separate the afro kinky bulk hair into smaller sections. This makes it easier to work with and creates more natural-looking results.",
+      image: "/IMG-20250629-WA0183.jpg",
+      tips: ["Don't make sections too thick", "Keep hair aligned in same direction", "Have extra hair ready"]
+    },
+    {
+      step: 4,
+      title: "Begin Installation",
+      description: "Start braiding or twisting from the root, gradually incorporating the bulk hair. Work systematically from one section to the next.",
+      image: "/IMG-20250629-WA0185.jpg",
+      tips: ["Keep tension consistent", "Braid close to the scalp", "Add hair gradually for natural look"]
+    },
+    {
+      step: 5,
+      title: "Secure and Style",
+      description: "Complete each braid or twist by securing the ends. Style as desired and apply light oil for shine and moisture.",
+      image: "/IMG-20250629-WA0189.jpg",
+      tips: ["Don't braid too tightly", "Seal ends properly", "Apply light oil for shine"]
+    },
+    {
+      step: 6,
+      title: "Final Touches",
+      description: "Trim any uneven ends, style your new look, and apply protective products. Your beautiful afro kinky style is complete!",
+      image: "/IMG-20250629-WA0193.jpg",
+      tips: ["Trim carefully with sharp scissors", "Style gently", "Use protective products"]
+    }
+  ];
+
+  const handleReviewSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Simulate review submission
+    const newReview = {
+      ...reviewForm,
+      id: Date.now(),
+      date: new Date().toLocaleDateString(),
+      verified: true
+    };
+    
+    // Show success message
+    alert(`Thank you ${reviewForm.name}! Your review has been submitted and will be published after moderation.`);
+    
+    // Reset form and close modal
+    setReviewForm({
+      name: '',
+      email: '',
+      rating: 5,
+      title: '',
+      review: ''
+    });
+    setShowReviewModal(false);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -646,6 +729,7 @@ const ProductPage: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-semibold">Customer Reviews</h3>
                   <button className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors">
+                    onClick={() => setShowReviewModal(true)}
                     Write a Review
                   </button>
                 </div>
