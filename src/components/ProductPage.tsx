@@ -719,12 +719,11 @@ const ProductPage = () => {
         items={[{
           id: product.id,
           name: product.name,
-          price: currentPrice,
+          price: product.price,
           image: product.image,
-          shade: availableColors.find(c => c.key === selectedColor)?.name || product.color,
-          length: selectedLength,
+          shade: product.color,
+          length: product.length,
           quantity: quantity,
-          packs: selectedPacks
         }]}
       />
     </>
