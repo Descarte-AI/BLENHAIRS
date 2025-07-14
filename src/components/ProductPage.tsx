@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Star, ShoppingCart, Heart, Share2, ChevronLeft, ChevronRight, Plus, Minus, Check, Truck, RotateCcw, Shield } from 'lucide-react';
 import { useCart } from '../context/CartContext';
-import { products } from '../data/products';
+import { getAllProducts } from '../data/products';
 import PaymentModal from './PaymentModal';
 
 const ProductPage: React.FC = () => {
@@ -19,7 +19,7 @@ const ProductPage: React.FC = () => {
   const [selectedPacks, setSelectedPacks] = useState(1);
 
   // Find the product by ID
-  const product = products.find(p => p.id === id);
+  const product = getAllProducts().find(p => p.id === id);
 
   // Available options
   const availableColors = [
@@ -66,7 +66,7 @@ const ProductPage: React.FC = () => {
     const targetId = `afro-kinky-${selectedColor}-${selectedLength.replace('"', '')}`;
     
     // Try to find exact match first
-    const exactMatch = products.find(p => p.id === targetId);
+    const exactMatch = getAllProducts().find(p => p.id === targetId);
     if (exactMatch) return exactMatch;
     
     // If no exact match, create a variant based on the original product
@@ -165,7 +165,7 @@ const ProductPage: React.FC = () => {
   };
 
   // Get similar products (same color family)
-  const similarProducts = products.filter(p => 
+  const similarProducts = getAllProducts().filter(p => 
     p.id !== currentProduct?.id && 
     p.name.toLowerCase().includes(selectedColor.replace('-', ' '))
   ).slice(0, 4);
