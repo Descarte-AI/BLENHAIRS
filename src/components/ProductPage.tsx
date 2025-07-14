@@ -394,7 +394,7 @@ const ProductPage = () => {
                   className="w-full bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 text-gray-900 py-4 rounded-xl font-bold text-lg transition-all duration-300 flex items-center justify-center space-x-2 border-2 border-gray-300 hover:border-gray-400 transform hover:scale-[1.02]"
                 >
                   <ShoppingBag size={20} />
-                  <span>Add to Cart - ${(totalPrice * quantity).toFixed(2)}</span>
+                  <span>Add to Cart - ${(product.price * quantity).toFixed(2)}</span>
                 </button>
                 
                 <button
@@ -770,15 +770,15 @@ const ProductPage = () => {
       <PaymentModal 
         isOpen={showPayment} 
         onClose={() => setShowPayment(false)} 
-        total={product.price * quantity}
+        total={totalPrice * quantity}
         items={[{
-          id: product.id,
-          name: product.name,
-          price: product.price,
-          image: product.image,
-          shade: product.color,
-          length: product.length,
-          quantity: quantity,
+          id: currentProduct?.id || product.id,
+          name: `${currentProduct?.name || product.name} (${selectedPacks} ${selectedPacks === 1 ? 'Pack' : 'Packs'})`,
+          price: pricePerPack,
+          image: currentProduct?.image || product.image,
+          shade: availableColors.find(c => c.key === selectedColor)?.name || currentProduct?.color || '',
+          length: selectedLength,
+          quantity: quantity * selectedPacks,
         }]}
       />
     </>
