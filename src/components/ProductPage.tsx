@@ -12,6 +12,9 @@ const ProductPage = () => {
   
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
+  const [selectedColor, setSelectedColor] = useState('');
+  const [selectedLength, setSelectedLength] = useState('');
+  const [selectedPacks, setSelectedPacks] = useState(1);
   const [showPayment, setShowPayment] = useState(false);
   const [activeTab, setActiveTab] = useState('description');
 
@@ -24,10 +27,60 @@ const ProductPage = () => {
   useEffect(() => {
     setSelectedImage(0);
     setQuantity(1);
+    if (product) {
+      setSelectedColor(product.color.toLowerCase().replace(' ', '-'));
+      setSelectedLength(product.length);
+      setSelectedPacks(1);
+    }
     setActiveTab('description');
-  }, [id]);
+  }, [id, product]);
 
   const product = getProductById(id || '');
+
+  // Available options
+  const availableColors = [
+    { key: 'natural-black', name: 'Natural Black', colorCode: '#1B1B1B' },
+    { key: 'dark-brown', name: 'Dark Brown', colorCode: '#3C2415' },
+    { key: 'medium-brown', name: 'Medium Brown', colorCode: '#8B4513' }
+  ];
+
+  const availableLengths = ['14"', '16"', '18"', '20"', '22"', '24"'];
+
+  const packOptions = [
+    { value: 1, label: '1 Pack', discount: 0, savings: 0 },
+    { value: 2, label: '2 Packs', discount: 5, savings: 5 },
+    { value: 3, label: '3 Packs', discount: 15, savings: 15 },
+    { value: 4, label: '4 Packs', discount: 30, savings: 30 }
+  ];
+
+  // Get current product based on selections
+  const getCurrentProduct = () => {
+    if (!product) return null;
+    
+    // Try to find product with selected color and length
+    const colorKey = selectedColor;
+    const length = selectedLength;
+    
+    // Get products of selected color
+    const colorProducts = afroKinkyProducts[colorKey as keyof typeof afroKinkyProducts];
+    if (colorProducts) {
+      const foundProduct = colorProducts.find(p => p.length === length);
+      if (foundProduct) return foundProduct;
+    }
+    
+    // Fallback to original product
+    return product;
+  };
+
+  const currentProduct = getCurrentProduct() || product;
+
+  // Calculate pricing
+  const basePrice = currentProduct?.price || 0;
+  const selectedPackOption = packOptions.find(p => p.value === selectedPacks) || packOptions[0];
+  const packDiscount = selectedPackOption.discount;
+  const pricePerPack = Math.max(0, basePrice - (packDiscount / selectedPacks));
+  const totalPrice = pricePerPack * selectedPacks * quantity;
+  const totalSavings = (basePrice * selectedPacks * quantity) - totalPrice;
 
   if (!product) {
     return (
@@ -54,14 +107,16 @@ const ProductPage = () => {
   const similarProducts = getSimilarProducts(product.id, 4);
 
   const handleAddToCart = () => {
+    const selectedColorName = availableColors.find(c => c.key === selectedColor)?.name || currentProduct?.color || '';
+    
     addToCart({
-      id: product.id,
-      name: product.name,
-      price: product.price,
-      image: product.image,
-      shade: product.color,
-      length: product.length,
-      quantity: quantity
+      id: currentProduct?.id || product.id,
+      name: `${currentProduct?.name || product.name} (${selectedPacks} ${selectedPacks === 1 ? 'Pack' : 'Packs'})`,
+      price: pricePerPack,
+      image: currentProduct?.image || product.image,
+      shade: selectedColorName,
+      length: selectedLength,
+      quantity: quantity * selectedPacks
     });
     
     const successDiv = document.createElement('div');
