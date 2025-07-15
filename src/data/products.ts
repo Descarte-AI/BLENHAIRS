@@ -615,6 +615,43 @@ export const calculateDiscountPercentage = (originalPrice: number, currentPrice:
 };
 
 // Generate unique product ID
-export const generateProductId = (baseType: string, color: string, length: string): string => {
-  return `${baseType}-${color.toLowerCase().replace(/[^a-z0-9]/g, '-')}-${length.replace('"', '')}`;
+export const generateProductId = (color: string, length: string): string => {
+  const colorKey = color.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/mix-/, '').replace(/#.*/, '');
+  const lengthKey = length.replace('"', '');
+  return `afro-kinky-${colorKey}-${lengthKey}`;
+};
+
+// Get product by exact ID match
+export const getProductByExactId = (id: string) => {
+  const allProducts = getAllProducts();
+  return allProducts.find(product => product.id === id);
+};
+
+// Get base product info from ID
+export const getBaseProductFromId = (id: string) => {
+  // Extract color and length from ID
+  const parts = id.split('-');
+  if (parts.length >= 4) {
+    const colorPart = parts.slice(2, -1).join('-'); // Everything between 'afro-kinky' and length
+    const lengthPart = parts[parts.length - 1];
+    
+    // Map color parts back to full names
+    const colorMap: { [key: string]: string } = {
+      'natural-black': 'Natural Black',
+      '1b-99j': 'Mix #1B/99J', 
+      '1b-purple': 'Mix #1B/Purple'
+    };
+    
+    return {
+      color: colorMap[colorPart] || 'Natural Black',
+      length: `${lengthPart}"`,
+      colorKey: colorPart
+    };
+  }
+  
+  return {
+    color: 'Natural Black',
+    length: '18"',
+    colorKey: 'natural-black'
+  };
 };

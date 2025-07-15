@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Star, ShoppingCart, Heart, Share2, ChevronLeft, ChevronRight, Plus, Minus, Check, Truck, RotateCcw, Shield, Info, CreditCard } from 'lucide-react';
 import { useCart } from '../context/CartContext';
-import { getAllProducts, getAvailableColors, getAvailableLengths, getPackOptions, calculateDiscountPercentage, generateProductId } from '../data/products';
+import { getAllProducts, getAvailableColors, getAvailableLengths, getPackOptions, calculateDiscountPercentage, generateProductId, getProductByExactId, getBaseProductFromId } from '../data/products';
 import PaymentModal from './PaymentModal';
 
 const ProductPage: React.FC = () => {
@@ -29,7 +29,8 @@ const ProductPage: React.FC = () => {
   });
 
   // Find the product by ID
-  const product = getAllProducts().find(p => p.id === id);
+  const product = getProductByExactId(id || '');
+  const baseProductInfo = getBaseProductFromId(id || '');
 
   // Available options
   const availableColors = getAvailableColors();
@@ -39,33 +40,28 @@ const ProductPage: React.FC = () => {
   // Initialize selections with product defaults
   useEffect(() => {
     if (product) {
-      // Extract color from product name or use default
-      const colorFromName = product.name.toLowerCase().includes('natural black') ? 'natural-black' :
-                           product.name.toLowerCase().includes('dark brown') ? 'dark-brown' :
-                           product.name.toLowerCase().includes('medium brown') ? 'medium-brown' : 'natural-black';
+      // Use base product info from ID
+      const colorKey = baseProductInfo.colorKey;
+      const length = baseProductInfo.length;
       
-      // Extract length from product name or use default
-      const lengthMatch = product.name.match(/(\d+)"/);
-      const lengthFromName = lengthMatch ? `${lengthMatch[1]}"` : '18"';
-      
-      setSelectedColor(colorFromName);
-      setSelectedLength(lengthFromName);
+      setSelectedColor(colorKey);
+      setSelectedLength(length);
       setSelectedPack(1);
       setCurrentImageIndex(0);
       setQuantity(1);
       setActiveTab('description');
     }
-  }, [product]);
+  }, [product, baseProductInfo]);
 
   // Calculate current product based on selections
   const getCurrentProduct = () => {
     if (!product) return null;
     
     const colorName = availableColors.find(c => c.key === selectedColor)?.name || 'Natural Black';
-    const targetId = `afro-kinky-${selectedColor}-${selectedLength.replace('"', '')}`;
+    const targetId = generateProductId(colorName, selectedLength);
     
     // Try to find exact match first
-    const exactMatch = getAllProducts().find(p => p.id === targetId);
+    const exactMatch = getProductByExactId(targetId);
     if (exactMatch) return exactMatch;
     
     // If no exact match, create a variant based on the original product
@@ -273,7 +269,7 @@ const ProductPage: React.FC = () => {
             </button>
             <span>/</span>
             <button 
-              onClick={handleBreadcrumbClick}
+              onClick={() => navigate('/collection/afro-kinky-bulk')}
               className="hover:text-purple-600 transition-colors"
             >
               Afro Kinky Bulk

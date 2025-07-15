@@ -512,11 +512,20 @@ const ProductCard = ({ product, viewMode, onProductClick }: any) => {
         )}
         
         {/* Quick View Overlay */}
-        <div className={`absolute inset-0 bg-black/40 flex items-end justify-center pb-4 transition-opacity duration-300 ${
+        <div className={`absolute inset-0 bg-black/40 flex items-center justify-center transition-opacity duration-300 ${
           isHovered ? 'opacity-100' : 'opacity-0'
         }`}>
-          <div className="bg-white/90 backdrop-blur-sm text-gray-900 px-4 py-2 rounded-lg font-semibold text-sm transform transition-transform duration-300 hover:scale-105">
-            Quick View
+          <div className="flex space-x-3">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleAddToCart(product);
+              }}
+              className="bg-gray-900 text-white px-4 py-2 rounded-lg font-semibold hover:bg-gray-800 transition-all duration-300 transform hover:scale-105 flex items-center space-x-2 shadow-lg"
+            >
+              <ShoppingBag size={16} />
+              <span>Add to Cart</span>
+            </button>
           </div>
         </div>
         
@@ -545,14 +554,23 @@ const ProductCard = ({ product, viewMode, onProductClick }: any) => {
         }`}>
           <div className="flex space-x-3">
             <button
-              onClick={() => onProductClick(product.id)}
+              onClick={(e) => {
+                e.stopPropagation();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                setTimeout(() => {
+                  navigate('/');
+                }, 100);
+              }}
               className="bg-white text-gray-900 px-4 py-2 rounded-lg font-semibold hover:bg-gray-100 transition-all duration-300 transform hover:scale-105 flex items-center space-x-2 shadow-lg"
             >
               <Eye size={16} />
-              <span>Quick View</span>
+              <span>View Details</span>
             </button>
             <button
-              onClick={handleAddToCart}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleAddToCart(product);
+              }}
               className="bg-gray-900 text-white px-4 py-2 rounded-lg font-semibold hover:bg-gray-800 transition-all duration-300 transform hover:scale-105 flex items-center space-x-2 shadow-lg"
             >
               <ShoppingBag size={16} />

@@ -269,7 +269,7 @@ Thank you for your purchase! 💫`);
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-3xl max-w-5xl w-full max-h-[95vh] overflow-y-auto shadow-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-gray-900 to-gray-700 text-white rounded-t-3xl">
+        <div className="sticky top-0 z-10 flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-gray-900 to-gray-700 text-white rounded-t-3xl">
           <div className="flex items-center space-x-3">
             <Lock size={24} className="text-white" />
             <div>

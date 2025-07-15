@@ -14,7 +14,7 @@ const WhatsAppButton = () => {
       href={whatsappUrl}
       target="_blank"
       rel="noopener noreferrer"
-      className="fixed bottom-6 right-6 z-50 bg-green-500 hover:bg-green-600 text-white p-4 rounded-full shadow-lg transition-all duration-300 transform hover:scale-110 group"
+      className="fixed bottom-6 right-6 z-50 bg-gray-900 hover:bg-gray-800 text-white p-4 rounded-full shadow-lg transition-all duration-300 transform hover:scale-110 group"
       aria-label="Contact us on WhatsApp"
     >
       <MessageCircle size={24} />
@@ -26,7 +26,7 @@ const WhatsAppButton = () => {
       </div>
       
       {/* Pulse animation */}
-      <div className="absolute inset-0 bg-green-500 rounded-full animate-ping opacity-20"></div>
+      <div className="absolute inset-0 bg-gray-900 rounded-full animate-ping opacity-20"></div>
     </a>
   );
 };
