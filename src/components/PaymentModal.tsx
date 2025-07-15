@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, CreditCard, Shield, Lock, CheckCircle, Star, Truck } from 'lucide-react';
 import { PayPalScriptProvider, PayPalButtons } from '@paypal/react-paypal-js';
+import { sendOrderNotificationEmail, sendCustomerConfirmationEmail } from '../utils/emailService';
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -94,6 +95,35 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total, ite
         timestamp: new Date().toISOString()
       };
       
+      // Send order notification emails
+      const orderDetails = {
+        orderId: paymentResult.transactionId,
+        customerName: `${formData.firstName} ${formData.lastName}`,
+        customerEmail: formData.email,
+        products: items.map(item => ({
+          name: item.name,
+          color: item.shade || item.color,
+          length: item.length,
+          packs: item.selectedPacks || 1,
+          quantity: item.quantity || 1,
+          price: item.price * (item.quantity || 1)
+        })),
+        total: paymentResult.amount,
+        shippingAddress: {
+          street: formData.address,
+          city: formData.city,
+          state: formData.state,
+          zipCode: formData.zipCode,
+          country: 'US'
+        },
+        paymentMethod: paymentMethod === 'card' ? 'Credit Card' : 'PayPal',
+        orderDate: paymentResult.timestamp
+      };
+      
+      // Send emails (in background, don't wait for completion)
+      sendOrderNotificationEmail(orderDetails).catch(console.error);
+      sendCustomerConfirmationEmail(orderDetails).catch(console.error);
+      
       return paymentResult;
     } catch (error) {
       throw new Error('Payment processing failed');
@@ -144,6 +174,30 @@ Thank you for choosing Blen Hairs! 💫`);
 
   const handlePayPalSuccess = async (details: any) => {
     try {
+      const orderDetails = {
+        orderId: details.id,
+        customerName: `${formData.firstName} ${formData.lastName}` || details.payer?.name?.given_name + ' ' + details.payer?.name?.surname,
+        customerEmail: formData.email || details.payer?.email_address,
+        products: items.map(item => ({
+          name: item.name,
+          color: item.shade || item.color,
+          length: item.length,
+          packs: item.selectedPacks || 1,
+          quantity: item.quantity || 1,
+          price: item.price * (item.quantity || 1)
+        })),
+        total: total * 1.08,
+        shippingAddress: {
+          street: formData.address || 'PayPal Address',
+          city: formData.city || 'PayPal City',
+          state: formData.state || 'PayPal State',
+          zipCode: formData.zipCode || 'PayPal ZIP',
+          country: 'US'
+        },
+        paymentMethod: 'PayPal',
+        orderDate: new Date().toISOString()
+      };
+      
       const paymentData = {
         paypalOrderId: details.id,
         amount: total * 1.08,
@@ -154,6 +208,10 @@ Thank you for choosing Blen Hairs! 💫`);
       const result = await processPayment(paymentData);
       
       if (result.success) {
+        // Send notification emails
+        sendOrderNotificationEmail(orderDetails).catch(console.error);
+        sendCustomerConfirmationEmail(orderDetails).catch(console.error);
+        
         setPaymentSuccess(true);
         
         setTimeout(() => {

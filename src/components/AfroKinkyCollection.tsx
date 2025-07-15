@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Star, ShoppingBag, Heart, Eye, Filter, Grid, List, ChevronDown, X, Play } from 'lucide-react';
+import { Star, ShoppingBag, Heart, Eye, Filter, Grid, List, ChevronDown, X, Play, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { afroKinkyProducts } from '../data/products';
 
@@ -346,6 +346,28 @@ const AfroKinkyCollection = () => {
 // Product Card Component
 const ProductCard = ({ product, viewMode, onProductClick }: any) => {
   const { addToCart } = useCart();
+  const [isHovered, setIsHovered] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [imageInterval, setImageInterval] = useState<NodeJS.Timeout | null>(null);
+
+  const handleMouseEnter = () => {
+    setIsHovered(true);
+    if (product.images && product.images.length > 1) {
+      const interval = setInterval(() => {
+        setCurrentImageIndex((prev) => (prev + 1) % product.images.length);
+      }, 1500); // Change image every 1.5 seconds
+      setImageInterval(interval);
+    }
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovered(false);
+    setCurrentImageIndex(0);
+    if (imageInterval) {
+      clearInterval(imageInterval);
+      setImageInterval(null);
+    }
+  };
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -375,13 +397,25 @@ const ProductCard = ({ product, viewMode, onProductClick }: any) => {
   if (viewMode === 'list') {
     return (
       <div className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-all duration-300 flex items-center space-x-6">
-        <div className="relative flex-shrink-0">
+        <div 
+          className="relative flex-shrink-0"
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+        >
           <img
-            src={product.image}
+            src={product.images ? product.images[currentImageIndex] : product.image}
             alt={product.name}
-            className="w-24 h-24 object-cover rounded-lg cursor-pointer hover:scale-105 transition-transform"
+            className="w-24 h-24 object-cover rounded-lg cursor-pointer hover:scale-105 transition-all duration-300"
             onClick={() => onProductClick(product.id)}
           />
+          
+          {/* Quick View Overlay */}
+          <div className={`absolute inset-0 bg-black/40 rounded-lg flex items-center justify-center transition-opacity duration-300 ${
+            isHovered ? 'opacity-100' : 'opacity-0'
+          }`}>
+            <span className="text-white font-semibold text-sm">Quick View</span>
+          </div>
+          
           {product.popular && (
             <div className="absolute -top-2 -right-2 bg-red-500 text-white px-2 py-1 rounded-full text-xs font-bold">
               Popular
@@ -450,14 +484,41 @@ const ProductCard = ({ product, viewMode, onProductClick }: any) => {
   }
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-all duration-300 group">
-      <div className="relative">
+    <div className="bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-xl transition-all duration-300 group transform hover:scale-[1.02]">
+      <div 
+        className="relative overflow-hidden"
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+      >
         <img
-          src={product.image}
+          src={product.images ? product.images[currentImageIndex] : product.image}
           alt={product.name}
-          className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-500 cursor-pointer"
+          className="w-full h-64 object-cover transition-all duration-500 cursor-pointer"
           onClick={() => onProductClick(product.id)}
         />
+        
+        {/* Image Indicators */}
+        {product.images && product.images.length > 1 && (
+          <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex space-x-1">
+            {product.images.map((_, index) => (
+              <div
+                key={index}
+                className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                  index === currentImageIndex ? 'bg-white' : 'bg-white/50'
+                }`}
+              />
+            ))}
+          </div>
+        )}
+        
+        {/* Quick View Overlay */}
+        <div className={`absolute inset-0 bg-black/40 flex items-end justify-center pb-4 transition-opacity duration-300 ${
+          isHovered ? 'opacity-100' : 'opacity-0'
+        }`}>
+          <div className="bg-white/90 backdrop-blur-sm text-gray-900 px-4 py-2 rounded-lg font-semibold text-sm transform transition-transform duration-300 hover:scale-105">
+            Quick View
+          </div>
+        </div>
         
         {/* Badges */}
         <div className="absolute top-3 left-3 space-y-2">
@@ -468,7 +529,7 @@ const ProductCard = ({ product, viewMode, onProductClick }: any) => {
           )}
           {product.originalPrice && (
             <div className="bg-green-500 text-white px-2 py-1 rounded-full text-xs font-bold">
-              Save ${product.originalPrice - product.price}
+              -{Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}%
             </div>
           )}
         </div>
@@ -478,19 +539,21 @@ const ProductCard = ({ product, viewMode, onProductClick }: any) => {
           <Heart size={16} className="text-gray-600 hover:text-red-500 transition-colors" />
         </button>
 
-        {/* Hover Overlay with Quick View and Add to Cart */}
-        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+        {/* Action Buttons Overlay */}
+        <div className={`absolute inset-0 bg-black/20 flex items-center justify-center transition-opacity duration-300 ${
+          isHovered ? 'opacity-100' : 'opacity-0'
+        }`}>
           <div className="flex space-x-3">
             <button
               onClick={() => onProductClick(product.id)}
-              className="bg-white text-gray-900 px-4 py-2 rounded-lg font-semibold hover:bg-gray-100 transition-colors flex items-center space-x-2"
+              className="bg-white text-gray-900 px-4 py-2 rounded-lg font-semibold hover:bg-gray-100 transition-all duration-300 transform hover:scale-105 flex items-center space-x-2 shadow-lg"
             >
               <Eye size={16} />
               <span>Quick View</span>
             </button>
             <button
               onClick={handleAddToCart}
-              className="bg-gray-900 text-white px-4 py-2 rounded-lg font-semibold hover:bg-gray-800 transition-colors flex items-center space-x-2"
+              className="bg-gray-900 text-white px-4 py-2 rounded-lg font-semibold hover:bg-gray-800 transition-all duration-300 transform hover:scale-105 flex items-center space-x-2 shadow-lg"
             >
               <ShoppingBag size={16} />
               <span>Add to Cart</span>
@@ -541,14 +604,14 @@ const ProductCard = ({ product, viewMode, onProductClick }: any) => {
         <div className="flex space-x-2">
           <button
             onClick={() => onProductClick(product.id)}
-            className="flex-1 bg-gray-200 text-gray-900 py-2.5 rounded-lg font-medium hover:bg-gray-300 transition-colors flex items-center justify-center space-x-2"
+            className="flex-1 bg-gray-200 text-gray-900 py-2.5 rounded-lg font-medium hover:bg-gray-300 transition-all duration-300 transform hover:scale-105 flex items-center justify-center space-x-2"
           >
             <Eye size={16} />
             <span>View</span>
           </button>
           <button
             onClick={handleAddToCart}
-            className="flex-1 bg-gray-900 text-white py-2.5 rounded-lg font-medium hover:bg-gray-800 transition-colors flex items-center justify-center space-x-2"
+            className="flex-1 bg-gray-900 text-white py-2.5 rounded-lg font-medium hover:bg-gray-800 transition-all duration-300 transform hover:scale-105 flex items-center justify-center space-x-2"
           >
             <ShoppingBag size={16} />
             <span>Add</span>

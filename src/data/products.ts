@@ -508,6 +508,14 @@ export const getProductById = (id: string) => {
   return allProducts.find(product => product.id === id);
 };
 
+// Get base product by ID (for variants)
+export const getBaseProductById = (id: string) => {
+  const allProducts = getAllProducts();
+  // Extract base ID (remove color and length suffixes)
+  const baseId = id.split('-').slice(0, 2).join('-'); // e.g., "afro-kinky" from "afro-kinky-natural-black-14"
+  return allProducts.find(product => product.id.startsWith(baseId));
+};
+
 // Get product by color and length combination
 export const getProductByColorAndLength = (color: string, length: string) => {
   const allProducts = getAllProducts();
@@ -520,26 +528,27 @@ export const getProductByColorAndLength = (color: string, length: string) => {
 // Get all available colors
 export const getAvailableColors = () => {
   return [
-    { key: 'natural-black', name: 'Natural Black', colorCode: '#1B1B1B' },
-    { key: 'dark-brown', name: 'Dark Brown', colorCode: '#3C2415' },
-    { key: 'medium-brown', name: 'Medium Brown', colorCode: '#8B4513' }
+    { key: 'natural-black', name: 'Natural Black #1B', colorCode: '#1B1B1B' },
+    { key: 'dark-brown', name: 'Mix #1B/99J', colorCode: '#3C2415' },
+    { key: 'medium-brown', name: 'Mix #1B/Purple', colorCode: '#8B4513' }
   ];
 };
 
 // Get all available lengths
 export const getAvailableLengths = () => {
-  return ['14"', '16"', '18"', '20"', '22"', '24"'];
+  return ['10"', '12"', '14"', '16"', '18"', '20"', '22"'];
 };
 
 // Get price for specific length (base prices)
 export const getPriceForLength = (length: string): number => {
   const basePrices: { [key: string]: number } = {
+    '10"': 40,
+    '12"': 42,
     '14"': 45,
     '16"': 50,
     '18"': 55,
     '20"': 60,
-    '22"': 65,
-    '24"': 70
+    '22"': 65
   };
   return basePrices[length] || 55;
 };
@@ -569,4 +578,43 @@ export const getSimilarProducts = (productId: string, limit: number = 4) => {
   return sameColorProducts
     .filter(p => p.id !== productId)
     .slice(0, limit);
+};
+
+// Pack options with pricing
+export const getPackOptions = () => {
+  return [
+    { 
+      count: 1, 
+      name: '1 Pack', 
+      discount: 0, 
+      savings: 0,
+      description: 'Perfect for touch-ups'
+    },
+    { 
+      count: 3, 
+      name: '3 Packs (Full Head)', 
+      discount: 15, 
+      savings: 5,
+      description: 'Most popular choice',
+      popular: true
+    },
+    { 
+      count: 5, 
+      name: '5 Packs (Recommended)', 
+      discount: 35, 
+      savings: 7,
+      description: 'Best value for money',
+      badge: 'Best Value'
+    }
+  ];
+};
+
+// Calculate discount percentage
+export const calculateDiscountPercentage = (originalPrice: number, currentPrice: number): number => {
+  return Math.round(((originalPrice - currentPrice) / originalPrice) * 100);
+};
+
+// Generate unique product ID
+export const generateProductId = (baseType: string, color: string, length: string): string => {
+  return `${baseType}-${color.toLowerCase().replace(/[^a-z0-9]/g, '-')}-${length.replace('"', '')}`;
 };

@@ -8,6 +8,7 @@ import ProductPage from './components/ProductPage';
 import AboutUs from './components/AboutUs';
 import CartPage from './components/CartPage';
 import Footer from './components/Footer';
+import WhatsAppButton from './components/WhatsAppButton';
 import { CartProvider } from './context/CartContext';
 
 // Component to handle scroll to top on route change
@@ -43,6 +44,7 @@ function App() {
             <Route path="/cart" element={<CartPage />} />
           </Routes>
           <Footer />
+          <WhatsAppButton />
         </div>
       </Router>
     </CartProvider>

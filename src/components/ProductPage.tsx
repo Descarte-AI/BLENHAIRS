@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Star, ShoppingCart, Heart, Share2, ChevronLeft, ChevronRight, Plus, Minus, Check, Truck, RotateCcw, Shield } from 'lucide-react';
+import { ArrowLeft, Star, ShoppingCart, Heart, Share2, ChevronLeft, ChevronRight, Plus, Minus, Check, Truck, RotateCcw, Shield, Info, CreditCard } from 'lucide-react';
 import { useCart } from '../context/CartContext';
-import { getAllProducts, getPriceForLength, getColorMultiplier } from '../data/products';
+import { getAllProducts, getAvailableColors, getAvailableLengths, getPackOptions, calculateDiscountPercentage, generateProductId } from '../data/products';
 import PaymentModal from './PaymentModal';
 
 const ProductPage: React.FC = () => {
@@ -16,8 +16,10 @@ const ProductPage: React.FC = () => {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [selectedColor, setSelectedColor] = useState('');
   const [selectedLength, setSelectedLength] = useState('');
-  const [selectedPacks, setSelectedPacks] = useState(1);
+  const [selectedPack, setSelectedPack] = useState(1);
   const [showReviewModal, setShowReviewModal] = useState(false);
+  const [showColorGuide, setShowColorGuide] = useState(false);
+  const [showSizeGuide, setShowSizeGuide] = useState(false);
   const [reviewForm, setReviewForm] = useState({
     name: '',
     email: '',
@@ -30,20 +32,9 @@ const ProductPage: React.FC = () => {
   const product = getAllProducts().find(p => p.id === id);
 
   // Available options
-  const availableColors = [
-    { key: 'natural-black', name: 'Natural Black', color: '#1a1a1a' },
-    { key: 'dark-brown', name: 'Dark Brown', color: '#3d2914' },
-    { key: 'medium-brown', name: 'Medium Brown', color: '#8b4513' }
-  ];
-
-  const availableLengths = ['14"', '16"', '18"', '20"', '22"', '24"'];
-
-  const packOptions = [
-    { count: 1, discount: 0, savings: 0 },
-    { count: 2, discount: 5, savings: 2.5 },
-    { count: 3, discount: 15, savings: 5 },
-    { count: 4, discount: 30, savings: 7.5 }
-  ];
+  const availableColors = getAvailableColors();
+  const availableLengths = getAvailableLengths();
+  const packOptions = getPackOptions();
 
   // Initialize selections with product defaults
   useEffect(() => {
@@ -59,7 +50,7 @@ const ProductPage: React.FC = () => {
       
       setSelectedColor(colorFromName);
       setSelectedLength(lengthFromName);
-      setSelectedPacks(1);
+      setSelectedPack(1);
       setCurrentImageIndex(0);
       setQuantity(1);
       setActiveTab('description');
@@ -94,22 +85,29 @@ const ProductPage: React.FC = () => {
   const calculatePrice = () => {
     if (!currentProduct) return { basePrice: 0, totalPrice: 0, savings: 0, pricePerPack: 0 };
     
-    // Calculate price based on length and color
-    const lengthPrice = getPriceForLength(selectedLength);
-    const colorMultiplier = getColorMultiplier(selectedColor);
-    const basePrice = Math.round(lengthPrice * colorMultiplier);
+    // Base prices for different lengths
+    const basePrices: { [key: string]: number } = {
+      '10"': 40, '12"': 42, '14"': 45, '16"': 50, 
+      '18"': 55, '20"': 60, '22"': 65
+    };
     
-    const packOption = packOptions.find(p => p.count === selectedPacks) || packOptions[0];
-    const totalBeforeDiscount = basePrice * selectedPacks * quantity;
+    const basePrice = basePrices[selectedLength] || 55;
+    const originalPrice = basePrice + 20; // Original price before discount
+    
+    const packOption = packOptions.find(p => p.count === selectedPack) || packOptions[0];
+    const totalBeforeDiscount = basePrice * selectedPack * quantity;
     const totalDiscount = packOption.discount * quantity;
     const totalPrice = totalBeforeDiscount - totalDiscount;
-    const pricePerPack = (basePrice * selectedPacks - packOption.discount) / selectedPacks;
+    const pricePerPack = (basePrice * selectedPack - packOption.discount) / selectedPack;
+    const discountPercentage = calculateDiscountPercentage(originalPrice, basePrice);
     
     return {
       basePrice,
+      originalPrice,
       totalPrice,
       savings: totalDiscount,
-      pricePerPack
+      pricePerPack,
+      discountPercentage
     };
   };
 
@@ -135,14 +133,14 @@ const ProductPage: React.FC = () => {
     if (currentProduct) {
       const cartItem = {
         ...currentProduct,
-        name: `${currentProduct.name} (${selectedPacks} Pack${selectedPacks > 1 ? 's' : ''})`,
+        name: `${currentProduct.name} (${selectedPack} Pack${selectedPack > 1 ? 's' : ''})`,
         price: pricing.pricePerPack,
         selectedColor,
         selectedLength,
-        selectedPacks
+        selectedPacks: selectedPack
       };
       
-      addToCart(cartItem, quantity * selectedPacks);
+      addToCart(cartItem, quantity * selectedPack);
     }
   };
 
@@ -374,7 +372,16 @@ const ProductPage: React.FC = () => {
 
             {/* Color Selection */}
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-3">Color</h3>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-lg font-semibold text-gray-900">Color</h3>
+                <button 
+                  onClick={() => setShowColorGuide(true)}
+                  className="text-sm text-purple-600 hover:text-purple-700 flex items-center space-x-1"
+                >
+                  <Info size={14} />
+                  <span>Color Guide</span>
+                </button>
+              </div>
               <div className="flex space-x-3">
                 {availableColors.map((color) => (
                   <button
@@ -385,7 +392,7 @@ const ProductPage: React.FC = () => {
                         ? 'border-purple-500 shadow-lg scale-110' 
                         : 'border-gray-300 hover:border-purple-300'
                     }`}
-                    style={{ backgroundColor: color.color }}
+                    style={{ backgroundColor: color.colorCode }}
                     title={color.name}
                   >
                     {selectedColor === color.key && (
@@ -401,7 +408,16 @@ const ProductPage: React.FC = () => {
 
             {/* Length Selection */}
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-3">Length</h3>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-lg font-semibold text-gray-900">Length</h3>
+                <button 
+                  onClick={() => setShowSizeGuide(true)}
+                  className="text-sm text-purple-600 hover:text-purple-700 flex items-center space-x-1"
+                >
+                  <Info size={14} />
+                  <span>Size Guide</span>
+                </button>
+              </div>
               <div className="grid grid-cols-3 gap-2">
                 {availableLengths.map((length) => (
                   <button
@@ -421,42 +437,66 @@ const ProductPage: React.FC = () => {
 
             {/* Pack Selection */}
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-3">Number of Packs</h3>
-              <div className="grid grid-cols-2 gap-3">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">Pack Size</h3>
+              <div className="space-y-3">
                 {packOptions.map((option) => (
                   <button
                     key={option.count}
-                    onClick={() => setSelectedPacks(option.count)}
-                    className={`relative p-4 rounded-lg border-2 transition-all duration-300 ${
-                      selectedPacks === option.count
+                    onClick={() => setSelectedPack(option.count)}
+                    className={`relative w-full p-4 rounded-lg border-2 transition-all duration-300 ${
+                      selectedPack === option.count
                         ? 'border-purple-500 bg-purple-50'
                         : 'border-gray-300 hover:border-purple-300'
                     }`}
                   >
-                    <div className="text-center">
-                      <div className="font-semibold text-lg">{option.count} Pack{option.count > 1 ? 's' : ''}</div>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="font-semibold text-lg flex items-center space-x-2">
+                          <span>{option.name}</span>
+                          {option.popular && (
+                            <span className="bg-purple-500 text-white px-2 py-1 rounded-full text-xs">Popular</span>
+                          )}
+                          {option.badge && (
+                            <span className="bg-green-500 text-white px-2 py-1 rounded-full text-xs">{option.badge}</span>
+                          )}
+                        </div>
+                        <div className="text-sm text-gray-600">{option.description}</div>
+                      </div>
+                      <div className="text-right">
                       {option.savings > 0 && (
-                        <div className="text-green-600 text-sm font-medium">
+                          <div className="text-green-600 text-sm font-medium">
                           Save ${option.savings.toFixed(2)} per pack
+                          </div>
+                        )}
                         </div>
-                      )}
-                      {option.discount > 0 && (
-                        <div className="absolute -top-2 -right-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full">
-                          -${option.discount}
-                        </div>
-                      )}
                     </div>
+                    {option.discount > 0 && (
+                      <div className="absolute -top-2 -right-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full font-bold">
+                        -${option.discount}
+                      </div>
+                    )}
                   </button>
                 ))}
               </div>
             </div>
 
             {/* Pricing */}
-            <div className="bg-gray-50 p-6 rounded-xl">
+            <div className="bg-gradient-to-r from-gray-50 to-gray-100 p-6 rounded-xl border">
+              {/* Discount Badge */}
+              {pricing.discountPercentage > 0 && (
+                <div className="bg-red-500 text-white px-3 py-1 rounded-full text-sm font-bold mb-4 inline-block">
+                  -{pricing.discountPercentage}% OFF
+                </div>
+              )}
+              
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
+                  <span className="text-gray-600">Original price:</span>
+                  <span className="text-gray-400 line-through">${pricing.originalPrice.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between items-center">
                   <span className="text-gray-600">Price per pack:</span>
-                  <span className="font-semibold">${pricing.pricePerPack.toFixed(2)}</span>
+                  <span className="font-semibold text-green-600">${pricing.pricePerPack.toFixed(2)}</span>
                 </div>
                 {pricing.savings > 0 && (
                   <div className="flex justify-between items-center text-green-600">
@@ -468,6 +508,9 @@ const ProductPage: React.FC = () => {
                   <div className="flex justify-between items-center text-lg font-bold">
                     <span>Total:</span>
                     <span className="text-purple-600">${pricing.totalPrice.toFixed(2)}</span>
+                  </div>
+                  <div className="text-sm text-gray-600 mt-1">
+                    or 4 payments of ${(pricing.totalPrice / 4).toFixed(2)}
                   </div>
                 </div>
               </div>
@@ -493,7 +536,7 @@ const ProductPage: React.FC = () => {
                   </button>
                 </div>
                 <span className="text-gray-600">
-                  Total packs: {quantity * selectedPacks}
+                  Total packs: {quantity * selectedPack}
                 </span>
               </div>
             </div>
@@ -806,14 +849,96 @@ const ProductPage: React.FC = () => {
         <PaymentModal
           isOpen={isPaymentModalOpen}
           onClose={() => setIsPaymentModalOpen(false)}
-          product={{
+          total={pricing.totalPrice * quantity}
+          items={[{
             ...currentProduct,
             price: pricing.totalPrice * quantity,
-            color: availableColors.find(c => c.key === selectedColor)?.name || currentProduct.color,
-            length: selectedLength
-          }}
-          quantity={quantity * selectedPacks}
+            shade: availableColors.find(c => c.key === selectedColor)?.name || currentProduct.color,
+            length: selectedLength,
+            quantity: quantity * selectedPack
+          }]}
         />
+      )}
+
+      {/* Review Modal */}
+      {showReviewModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b">
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-bold">Write a Review</h2>
+                <button
+                  onClick={() => setShowReviewModal(false)}
+                  className="p-2 hover:bg-gray-100 rounded-full"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+            </div>
+            
+            <form onSubmit={handleReviewSubmit} className="p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <input
+                  type="text"
+                  placeholder="Your Name"
+                  value={reviewForm.name}
+                  onChange={(e) => setReviewForm({...reviewForm, name: e.target.value})}
+                  className="border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  required
+                />
+                <input
+                  type="email"
+                  placeholder="Your Email"
+                  value={reviewForm.email}
+                  onChange={(e) => setReviewForm({...reviewForm, email: e.target.value})}
+                  className="border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  required
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Rating</label>
+                <div className="flex space-x-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setReviewForm({...reviewForm, rating: star})}
+                      className={`text-2xl ${star <= reviewForm.rating ? 'text-yellow-400' : 'text-gray-300'} hover:text-yellow-400 transition-colors`}
+                    >
+                      ★
+                    </button>
+                  ))}
+                </div>
+              </div>
+              
+              <input
+                type="text"
+                placeholder="Review Title"
+                value={reviewForm.title}
+                onChange={(e) => setReviewForm({...reviewForm, title: e.target.value})}
+                className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                required
+              />
+              
+              <textarea
+                placeholder="Write your review..."
+                value={reviewForm.review}
+                onChange={(e) => setReviewForm({...reviewForm, review: e.target.value})}
+                rows={4}
+                className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                required
+              />
+              
+              <button
+                type="submit"
+                className="w-full bg-purple-600 text-white py-3 rounded-lg font-semibold hover:bg-purple-700 transition-colors"
+              >
+                Submit Review
+              </button>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );
