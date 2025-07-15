@@ -168,7 +168,7 @@ export const afroKinkyProducts = {
   ],
   'dark-brown': [
     {
-      id: 'afro-kinky-dark-brown-14',
+      id: 'afro-kinky-dark-brown-28',
       name: 'Dark Brown Afro kinky Bulk Hair Extensions For Braiding Dreadlock Human Hair',
       color: 'Dark Brown',
       colorCode: '#3C2415',
@@ -196,7 +196,7 @@ export const afroKinkyProducts = {
       ]
     },
     {
-      id: 'afro-kinky-dark-brown-16',
+      id: 'afro-kinky-dark-brown-30',
       name: 'Dark Brown Afro Kinky Bulk Hair',
       color: 'Dark Brown',
       colorCode: '#3C2415',
@@ -223,7 +223,7 @@ export const afroKinkyProducts = {
       ]
     },
     {
-      id: 'afro-kinky-dark-brown-18',
+      id: 'afro-kinky-dark-brown-32',
       name: 'Dark Brown Afro Kinky Bulk Hair',
       color: 'Dark Brown',
       colorCode: '#3C2415',
@@ -250,7 +250,7 @@ export const afroKinkyProducts = {
       ]
     },
     {
-      id: 'afro-kinky-dark-brown-20',
+      id: 'afro-kinky-dark-brown-34',
       name: 'Dark Brown Afro Kinky Bulk Hair',
       color: 'Dark Brown',
       colorCode: '#3C2415',
@@ -277,7 +277,7 @@ export const afroKinkyProducts = {
       ]
     },
     {
-      id: 'afro-kinky-dark-brown-22',
+      id: 'afro-kinky-dark-brown-36',
       name: 'Dark Brown Afro Kinky Bulk Hair',
       color: 'Dark Brown',
       colorCode: '#3C2415',
@@ -304,7 +304,7 @@ export const afroKinkyProducts = {
       ]
     },
     {
-      id: 'afro-kinky-dark-brown-24',
+      id: 'afro-kinky-dark-brown-38',
       name: 'Dark Brown Afro Kinky Bulk Hair',
       color: 'Dark Brown',
       colorCode: '#3C2415',
