@@ -213,6 +213,21 @@ const AfroKinkyCollection = () => {
                     </div>
                   </div>
                 </div>
+               
+               {/* Quick View Text at Bottom */}
+               <div className={`absolute bottom-0 left-0 right-0 bg-black/70 text-white text-center py-2 transition-opacity duration-300 ${
+                 isHovered ? 'opacity-100' : 'opacity-0'
+               }`}>
+                 <button
+                   onClick={(e) => {
+                     e.stopPropagation();
+                     window.scrollTo({ top: 0, behavior: 'smooth' });
+                   }}
+                   className="text-white font-semibold hover:text-gray-200 transition-colors"
+                 >
+                   Quick View
+                 </button>
+               </div>
                 <p className="text-sm text-gray-600 mt-4">
                   Watch our step-by-step installation guide for perfect results every time
                 </p>
