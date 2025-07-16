@@ -25,7 +25,7 @@ const ScrollToTop = () => {
 const HomePage = () => (
   <>
     <Hero />
-     <AfroKinkyCollection />
+    <AfroKinkyCollection />
     <AboutUs />
   </>
 );
