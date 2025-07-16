@@ -1,6 +1,4 @@
-Here's the fixed version with all missing closing brackets added:
 
-```typescript
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Star, ShoppingCart, Heart, Share2, ChevronLeft, ChevronRight, Plus, Minus, Check, Truck, RotateCcw, Shield, Info, CreditCard } from 'lucide-react';
