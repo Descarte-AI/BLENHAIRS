@@ -55,23 +55,23 @@ const ProductPage: React.FC = () => {
 
   // Calculate current product based on selections
   const getCurrentProduct = () => {
-    if (!product) return null;
+    if (!product) return product;
     
-    const colorName = availableColors.find(c => c.key === selectedColor)?.name || 'Natural Black';
-    const targetId = generateProductId(colorName, selectedLength);
+    // Find product with selected color and length
+    const allProducts = getAllProducts();
+    const colorName = availableColors.find(c => c.key === selectedColor)?.name || product.color;
     
-    // Try to find exact match first
-    const exactMatch = getProductByExactId(targetId);
-    if (exactMatch) return exactMatch;
+    const matchingProduct = allProducts.find(p => 
+      p.color === colorName && p.length === selectedLength
+    );
     
-    // If no exact match, create a variant based on the original product
-    return {
+    // Return matching product or create variant
+    return matchingProduct || {
       ...product,
-      id: targetId,
-      name: `Afro Kinky Bulk Hair - ${colorName} ${selectedLength}`,
+      name: `${product.name} - ${colorName} ${selectedLength}`,
       color: colorName,
       length: selectedLength,
-      images: product.images // Use original images for now
+      price: calculatePrice().basePrice
     };
   };
 
@@ -166,15 +166,14 @@ const ProductPage: React.FC = () => {
   const handleBreadcrumbClick = () => {
     scrollToTop();
     setTimeout(() => {
-      navigate('/', { state: { scrollTo: 'afro-kinky-collection' } });
+      navigate('/collection/afro-kinky-bulk');
     }, 100);
   };
 
   // Get similar products (same color family)
-  const similarProducts = getAllProducts().filter(p => 
-    p.id !== currentProduct?.id && 
-    p.name.toLowerCase().includes(selectedColor.replace('-', ' '))
-  ).slice(0, 4);
+
+  // Get similar products
+  const similarProducts = getSimilarProducts(currentProduct, 4);
 
   const tabs = [
     { id: 'description', label: 'Description' },
@@ -272,7 +271,7 @@ const ProductPage: React.FC = () => {
               onClick={() => navigate('/collection/afro-kinky-bulk')}
               className="hover:text-purple-600 transition-colors"
             >
-              Afro Kinky Bulk
+              Collection
             </button>
             <span>/</span>
             <span className="text-gray-900">{currentProduct?.name}</span>
@@ -283,14 +282,11 @@ const ProductPage: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Back Button */}
         <button
-          onClick={() => {
-            scrollToTop();
-            setTimeout(() => navigate(-1), 100);
-          }}
+          onClick={() => navigate('/collection/afro-kinky-bulk')}
           className="flex items-center space-x-2 text-gray-600 hover:text-purple-600 transition-colors mb-6 group"
         >
           <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
-          <span>Back</span>
+          <span>Back to Collection</span>
         </button>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">

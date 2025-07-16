@@ -561,12 +561,14 @@ export const getProductsByColor = (color: string) => {
 };
 
 // Get similar products (same color, different length)
-export const getSimilarProducts = (productId: string, limit: number = 4) => {
-  const product = getProductById(productId);
-  if (!product) return [];
+export const getSimilarProducts = (currentProduct: any, limit: number = 4) => {
+  if (!currentProduct) return [];
   
-  const sameColorProducts = getProductsByColor(product.color);
+  const allProducts = getAllProducts();
+  const sameColorProducts = allProducts.filter(p => 
+    p.color === currentProduct.color && p.id !== currentProduct.id
+  );
+  
   return sameColorProducts
-    .filter(p => p.id !== productId)
     .slice(0, limit);
 };
