@@ -4,10 +4,10 @@
 export const PAYMENT_CONFIG = {
   // PayPal Configuration
   paypal: {
-    clientId: process.env.REACT_APP_PAYPAL_CLIENT_ID || "demo_paypal_client_id",
+    clientId: import.meta.env.VITE_PAYPAL_CLIENT_ID || "demo_paypal_client_id",
     currency: "USD",
     intent: "capture",
-    environment: process.env.NODE_ENV === 'production' ? 'live' : 'sandbox'
+    environment: import.meta.env.PROD ? 'live' : 'sandbox'
   },
 
   // Stripe Configuration
@@ -20,7 +20,7 @@ export const PAYMENT_CONFIG = {
 
   // API Endpoints
   api: {
-    baseUrl: process.env.REACT_APP_API_URL || "https://api.stripe.com/v1",
+    baseUrl: import.meta.env.VITE_API_URL || "https://api.stripe.com/v1",
     endpoints: {
       createPaymentIntent: "/payments/create-intent",
       confirmPayment: "/payments/confirm",
