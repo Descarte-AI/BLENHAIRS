@@ -1,6 +1,17 @@
 import React, { useState } from 'react';
 import { X, CreditCard, Shield, Lock, CheckCircle, Star, Truck } from 'lucide-react';
-import { PayPalScriptProvider, PayPalButtons } from '@paypal/react-paypal-js';
+import { PAYMENT_CONFIG, TEST_CARDS } from '../config/payment';
+import { 
+  createPaymentIntent, 
+  confirmPayment, 
+  validateCardNumber, 
+  validateExpiryDate, 
+  validateCVV, 
+  formatCardNumber,
+  getCardBrand,
+  calculateOrderTotal,
+  dollarsToCents
+} from '../utils/stripeHelpers';
 import { sendOrderNotificationEmail, sendCustomerConfirmationEmail } from '../utils/emailService';
 
 interface PaymentModalProps {
@@ -10,21 +21,8 @@ interface PaymentModalProps {
   items: any[];
 }
 
-// PayPal Configuration - Replace with your actual credentials
-const PAYPAL_CONFIG = {
-  clientId: "AW8Q9Q9Q9Q9Q9Q9Q9Q9Q9Q9Q9Q9Q9Q9Q9Q9Q9Q9Q9Q9Q9Q9Q9Q9Q9Q9Q9Q9Q9Q9Q9Q", // Replace with your PayPal Client ID
-  currency: "USD",
-  intent: "capture"
-};
-
-// Stripe Configuration - Replace with your actual keys
-const STRIPE_CONFIG = {
-  publishableKey: "pk_test_51234567890abcdefghijklmnopqrstuvwxyz", // Replace with your Stripe Publishable Key
-  // Note: Secret key should be on server side only
-};
-
 const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total, items }) => {
-  const [paymentMethod, setPaymentMethod] = useState<'card' | 'paypal'>('card');
+  const [paymentMethod, setPaymentMethod] = useState<'card'>('card');
   const [formData, setFormData] = useState({
     email: '',
     firstName: '',
@@ -41,6 +39,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total, ite
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [errors, setErrors] = useState<any>({});
+  const [cardBrand, setCardBrand] = useState('');
+  const [paymentError, setPaymentError] = useState('');
 
   if (!isOpen) return null;
 
@@ -55,12 +55,26 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total, ite
     if (!formData.state) newErrors.state = 'State is required';
     if (!formData.zipCode) newErrors.zipCode = 'ZIP code is required';
     
-    if (paymentMethod === 'card') {
-      if (!formData.cardNumber) newErrors.cardNumber = 'Card number is required';
-      if (!formData.expiryDate) newErrors.expiryDate = 'Expiry date is required';
-      if (!formData.cvv) newErrors.cvv = 'CVV is required';
-      if (!formData.nameOnCard) newErrors.nameOnCard = 'Name on card is required';
+    // Card validation
+    if (!formData.cardNumber) {
+      newErrors.cardNumber = 'Card number is required';
+    } else if (!validateCardNumber(formData.cardNumber)) {
+      newErrors.cardNumber = 'Invalid card number';
     }
+    
+    if (!formData.expiryDate) {
+      newErrors.expiryDate = 'Expiry date is required';
+    } else if (!validateExpiryDate(formData.expiryDate)) {
+      newErrors.expiryDate = 'Invalid or expired date';
+    }
+    
+    if (!formData.cvv) {
+      newErrors.cvv = 'CVV is required';
+    } else if (!validateCVV(formData.cvv, cardBrand)) {
+      newErrors.cvv = 'Invalid CVV';
+    }
+    
+    if (!formData.nameOnCard) newErrors.nameOnCard = 'Name on card is required';
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -68,36 +82,108 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total, ite
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    
+    let processedValue = value;
+    
+    // Special handling for card number
+    if (name === 'cardNumber') {
+      processedValue = formatCardNumber(value);
+      setCardBrand(getCardBrand(value));
+    }
+    
+    // Special handling for expiry date
+    if (name === 'expiryDate') {
+      processedValue = value.replace(/\D/g, '').replace(/(\d{2})(\d)/, '$1/$2');
+      if (processedValue.length > 5) processedValue = processedValue.slice(0, 5);
+    }
+    
+    // Special handling for CVV
+    if (name === 'cvv') {
+      processedValue = value.replace(/\D/g, '');
+      const maxLength = cardBrand === 'amex' ? 4 : 3;
+      if (processedValue.length > maxLength) processedValue = processedValue.slice(0, maxLength);
+    }
+    
+    setFormData(prev => ({ ...prev, [name]: processedValue }));
     
     // Clear error when user starts typing
     if (errors[name]) {
       setErrors((prev: any) => ({ ...prev, [name]: '' }));
     }
+    
+    // Clear payment error
+    if (paymentError) {
+      setPaymentError('');
+    }
   };
 
-  const processPayment = async (paymentData: any) => {
-    // Simulate API call to your payment processor
-    // In real implementation, this would call your backend API
+  const processStripePayment = async () => {
+    setIsProcessing(true);
+    setPaymentError('');
     
     try {
-      setIsProcessing(true);
+      // Calculate order totals
+      const orderTotals = calculateOrderTotal(total, 0.08, 0); // 8% tax, free shipping
       
-      // Simulate payment processing delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Simulate payment success
-      const paymentResult = {
-        success: true,
-        transactionId: `txn_${Date.now()}`,
-        amount: total * 1.08, // Including tax
-        method: paymentMethod,
-        timestamp: new Date().toISOString()
+      // Create payment intent
+      const paymentData = {
+        amount: dollarsToCents(orderTotals.total),
+        currency: 'usd',
+        customerInfo: {
+          name: `${formData.firstName} ${formData.lastName}`,
+          email: formData.email
+        },
+        shippingAddress: {
+          line1: formData.address,
+          city: formData.city,
+          state: formData.state,
+          postal_code: formData.zipCode,
+          country: 'US'
+        },
+        items: items.map(item => ({
+          name: item.name,
+          quantity: item.quantity || 1,
+          price: item.price
+        }))
       };
+      
+      const intentResult = await createPaymentIntent(paymentData);
+      
+      if (!intentResult.success) {
+        throw new Error(intentResult.error || 'Failed to create payment intent');
+      }
+      
+      // Confirm payment with card details
+      const paymentMethodData = {
+        amount: dollarsToCents(orderTotals.total),
+        card: {
+          number: formData.cardNumber.replace(/\s/g, ''),
+          exp_month: parseInt(formData.expiryDate.split('/')[0]),
+          exp_year: parseInt(`20${formData.expiryDate.split('/')[1]}`),
+          cvc: formData.cvv
+        },
+        billing_details: {
+          name: formData.nameOnCard,
+          email: formData.email,
+          address: {
+            line1: formData.address,
+            city: formData.city,
+            state: formData.state,
+            postal_code: formData.zipCode,
+            country: 'US'
+          }
+        }
+      };
+      
+      const confirmResult = await confirmPayment(intentResult.paymentIntent.id, paymentMethodData);
+      
+      if (!confirmResult.success) {
+        throw new Error(confirmResult.error || 'Payment failed');
+      }
       
       // Send order notification emails
       const orderDetails = {
-        orderId: paymentResult.transactionId,
+        orderId: confirmResult.payment.id,
         customerName: `${formData.firstName} ${formData.lastName}`,
         customerEmail: formData.email,
         products: items.map(item => ({
@@ -108,7 +194,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total, ite
           quantity: item.quantity || 1,
           price: item.price * (item.quantity || 1)
         })),
-        total: paymentResult.amount,
+        total: orderTotals.total,
         shippingAddress: {
           street: formData.address,
           city: formData.city,
@@ -116,17 +202,25 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total, ite
           zipCode: formData.zipCode,
           country: 'US'
         },
-        paymentMethod: paymentMethod === 'card' ? 'Credit Card' : 'PayPal',
-        orderDate: paymentResult.timestamp
+        paymentMethod: 'Credit Card',
+        orderDate: new Date().toISOString()
       };
       
       // Send emails (in background, don't wait for completion)
       sendOrderNotificationEmail(orderDetails).catch(console.error);
       sendCustomerConfirmationEmail(orderDetails).catch(console.error);
       
-      return paymentResult;
+      return {
+        success: true,
+        transactionId: confirmResult.payment.id,
+        amount: orderTotals.total,
+        method: 'Credit Card',
+        timestamp: new Date().toISOString()
+      };
+      
     } catch (error) {
-      throw new Error('Payment processing failed');
+      console.error('Payment error:', error);
+      throw error;
     } finally {
       setIsProcessing(false);
     }
@@ -140,14 +234,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total, ite
     }
     
     try {
-      const paymentData = {
-        ...formData,
-        amount: total * 1.08,
-        items: items,
-        paymentMethod: 'card'
-      };
-      
-      const result = await processPayment(paymentData);
+      const result = await processStripePayment();
       
       if (result.success) {
         setPaymentSuccess(true);
@@ -156,7 +243,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, total, ite
           alert(`🎉 Payment Successful! 
 
 Transaction ID: ${result.transactionId}
-Amount: $${result.amount.toFixed(2)}
+Amount: $${result.amount}
 Payment Method: Credit Card
 
 Your premium hair extensions will be shipped within 24 hours with free tracking!
@@ -167,75 +254,9 @@ Thank you for choosing Blen Hairs! 💫`);
         }, 2000);
       }
     } catch (error) {
-      alert('Payment failed. Please try again.');
-      setIsProcessing(false);
+      const errorMessage = error instanceof Error ? error.message : 'Payment failed. Please try again.';
+      setPaymentError(errorMessage);
     }
-  };
-
-  const handlePayPalSuccess = async (details: any) => {
-    try {
-      const orderDetails = {
-        orderId: details.id,
-        customerName: `${formData.firstName} ${formData.lastName}` || details.payer?.name?.given_name + ' ' + details.payer?.name?.surname,
-        customerEmail: formData.email || details.payer?.email_address,
-        products: items.map(item => ({
-          name: item.name,
-          color: item.shade || item.color,
-          length: item.length,
-          packs: item.selectedPacks || 1,
-          quantity: item.quantity || 1,
-          price: item.price * (item.quantity || 1)
-        })),
-        total: total * 1.08,
-        shippingAddress: {
-          street: formData.address || 'PayPal Address',
-          city: formData.city || 'PayPal City',
-          state: formData.state || 'PayPal State',
-          zipCode: formData.zipCode || 'PayPal ZIP',
-          country: 'US'
-        },
-        paymentMethod: 'PayPal',
-        orderDate: new Date().toISOString()
-      };
-      
-      const paymentData = {
-        paypalOrderId: details.id,
-        amount: total * 1.08,
-        items: items,
-        paymentMethod: 'paypal'
-      };
-      
-      const result = await processPayment(paymentData);
-      
-      if (result.success) {
-        // Send notification emails
-        sendOrderNotificationEmail(orderDetails).catch(console.error);
-        sendCustomerConfirmationEmail(orderDetails).catch(console.error);
-        
-        setPaymentSuccess(true);
-        
-        setTimeout(() => {
-          alert(`🎉 PayPal Payment Successful! 
-
-Transaction ID: ${details.id}
-Amount: $${(total * 1.08).toFixed(2)}
-Payment Method: PayPal
-
-Your premium hair extensions will be shipped within 24 hours!
-
-Thank you for your purchase! 💫`);
-          onClose();
-          setPaymentSuccess(false);
-        }, 2000);
-      }
-    } catch (error) {
-      alert('Payment verification failed. Please contact support.');
-    }
-  };
-
-  const handlePayPalError = (error: any) => {
-    console.error('PayPal error:', error);
-    alert(`Payment failed: ${error.message || 'Unknown error'}`);
   };
 
   const usStates = [
@@ -359,91 +380,37 @@ Thank you for your purchase! 💫`);
             {/* Payment Method Selection */}
             <div className="mb-6">
               <h3 className="text-xl font-bold mb-4 text-gray-900">Choose Payment Method</h3>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3">
                 <button
                   onClick={() => setPaymentMethod('card')}
-                  className={`p-4 border-2 rounded-xl flex flex-col items-center space-y-2 transition-all ${
-                    paymentMethod === 'card' 
-                      ? 'border-gray-900 bg-gray-50 text-gray-900' 
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
+                  className="p-4 border-2 border-gray-900 bg-gray-50 text-gray-900 rounded-xl flex flex-col items-center space-y-2"
                 >
                   <CreditCard size={24} />
-                  <span className="font-bold">Credit Card</span>
-                </button>
-                <button
-                  onClick={() => setPaymentMethod('paypal')}
-                  className={`p-4 border-2 rounded-xl flex flex-col items-center space-y-2 transition-all ${
-                    paymentMethod === 'paypal' 
-                      ? 'border-blue-500 bg-blue-50 text-blue-600' 
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944.901C5.026.382 5.474 0 5.998 0h7.46c2.57 0 4.578.543 5.69 1.81 1.01 1.15 1.304 2.42 1.012 4.287-.023.143-.047.288-.077.437-.983 5.05-4.349 6.797-8.647 6.797h-2.19c-.524 0-.968.382-1.05.9l-1.12 7.106z"/>
-                  </svg>
-                  <span className="font-bold">PayPal</span>
+                  <span className="font-bold">Credit/Debit Card</span>
+                  <span className="text-sm text-gray-600">Powered by Stripe</span>
                 </button>
               </div>
             </div>
 
-            {paymentMethod === 'paypal' ? (
-              <div className="text-center space-y-4">
-                <div className="bg-blue-50 rounded-xl p-6">
-                  <h4 className="font-bold text-lg text-blue-800 mb-3">Pay with PayPal</h4>
-                  <p className="text-blue-700 mb-4">
-                    Complete your secure payment with PayPal
-                  </p>
-                  
-                  <PayPalScriptProvider options={PAYPAL_CONFIG}>
-                    <PayPalButtons
-                      style={{ 
-                        layout: "vertical",
-                        color: "blue",
-                        shape: "pill",
-                        label: "paypal",
-                        height: 50
-                      }}
-                      createOrder={(data, actions) => {
-                        return actions.order.create({
-                          purchase_units: [{
-                            description: `${items.map(i => i.name).join(', ')}`,
-                            amount: {
-                              value: finalTotal.toFixed(2),
-                              breakdown: {
-                                item_total: {
-                                  value: finalTotal.toFixed(2),
-                                  currency_code: "USD"
-                                }
-                              }
-                            },
-                            items: items.map(item => ({
-                              name: item.name,
-                              description: `${item.shade}, ${item.length}`,
-                              quantity: item.quantity?.toString() || "1",
-                              unit_amount: {
-                                value: item.price.toFixed(2),
-                                currency_code: "USD"
-                              }
-                            }))
-                          }]
-                        });
-                      }}
-                      onApprove={(data, actions) => {
-                        setIsProcessing(true);
-                        return actions.order!.capture().then((details) => {
-                          handlePayPalSuccess(details);
-                        });
-                      }}
-                      onError={(err) => {
-                        handlePayPalError(err);
-                      }}
-                    />
-                  </PayPalScriptProvider>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Payment Error Display */}
+              {paymentError && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <p className="text-red-600 font-medium">{paymentError}</p>
+                </div>
+              )}
+              
+              {/* Test Card Info */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h4 className="font-bold text-blue-800 mb-2">Test Mode - Use Test Cards</h4>
+                <div className="text-sm text-blue-700 space-y-1">
+                  <p><strong>Success:</strong> 4242 4242 4242 4242</p>
+                  <p><strong>Declined:</strong> 4000 0000 0000 0002</p>
+                  <p><strong>Requires Auth:</strong> 4000 0025 0000 3155</p>
+                  <p>Use any future expiry date and any 3-digit CVC</p>
                 </div>
               </div>
-            ) : (
-              <form onSubmit={handleSubmit} className="space-y-4">
+
                 {/* Contact Information */}
                 <div className="bg-gray-50 rounded-xl p-4">
                   <h4 className="font-bold mb-3 text-gray-900">Contact Information</h4>
@@ -569,18 +536,18 @@ Thank you for your purchase! 💫`);
                         name="cardNumber"
                         placeholder="Card number"
                         value={formData.cardNumber}
-                        onChange={(e) => {
-                          const value = e.target.value.replace(/\s/g, '').replace(/(.{4})/g, '$1 ').trim();
-                          if (value.length <= 19) {
-                            setFormData({ ...formData, cardNumber: value });
-                          }
-                        }}
+                        onChange={handleInputChange}
                         className={`w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 ${
                           errors.cardNumber ? 'border-red-500' : 'border-gray-200'
                         }`}
-                        maxLength={19}
+                        maxLength={23}
                         required
                       />
+                      {cardBrand && (
+                        <div className="mt-1 text-sm text-gray-600 capitalize">
+                          {cardBrand} card detected
+                        </div>
+                      )}
                       {errors.cardNumber && <p className="text-red-500 text-sm mt-1">{errors.cardNumber}</p>}
                     </div>
                     <div>
@@ -604,12 +571,7 @@ Thank you for your purchase! 💫`);
                           name="expiryDate"
                           placeholder="MM/YY"
                           value={formData.expiryDate}
-                          onChange={(e) => {
-                            const value = e.target.value.replace(/\D/g, '').replace(/(\d{2})(\d)/, '$1/$2');
-                            if (value.length <= 5) {
-                              setFormData({ ...formData, expiryDate: value });
-                            }
-                          }}
+                          onChange={handleInputChange}
                           className={`w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 ${
                             errors.expiryDate ? 'border-red-500' : 'border-gray-200'
                           }`}
@@ -624,16 +586,10 @@ Thank you for your purchase! 💫`);
                           name="cvv"
                           placeholder="CVV"
                           value={formData.cvv}
-                          onChange={(e) => {
-                            const value = e.target.value.replace(/\D/g, '');
-                            if (value.length <= 4) {
-                              setFormData({ ...formData, cvv: value });
-                            }
-                          }}
+                          onChange={handleInputChange}
                           className={`w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 ${
                             errors.cvv ? 'border-red-500' : 'border-gray-200'
                           }`}
-                          maxLength={4}
                           required
                         />
                         {errors.cvv && <p className="text-red-500 text-sm mt-1">{errors.cvv}</p>}
@@ -660,7 +616,6 @@ Thank you for your purchase! 💫`);
                   )}
                 </button>
               </form>
-            )}
 
             {/* Security Footer */}
             <div className="mt-6 text-center">
@@ -669,8 +624,8 @@ Thank you for your purchase! 💫`);
                 <span>Your payment information is encrypted and secure</span>
               </div>
               <div className="mt-2 text-xs text-gray-500">
-                <p>Demo Mode: Use test card 4242 4242 4242 4242 for testing</p>
-                <p>Replace API keys in PaymentModal.tsx with your actual credentials</p>
+                <p>Powered by Stripe - Your Stripe keys are configured</p>
+                <p>Test mode: Use the test card numbers above</p>
               </div>
             </div>
           </div>
